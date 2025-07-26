@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../viewmodels/drawer_menu_viewmodel.dart';
 import 'widgets/custom_drawer.dart';
 import 'widgets/custom_footer.dart';
@@ -20,22 +21,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Map<String, String>> products = [
     {
-      'title': 'Cotton Hoodie',
+      'titleKey': 'product_cotton_hoodie',
       'price': '1200.00 EGP',
       'image': 'https://res.cloudinary.com/dnka30e3s/image/upload/v1737886184/Cartverse/zp6uvg4u5gbalpffueec.jpg'
     },
     {
-      'title': 'Dress Shirt',
+      'titleKey': 'product_dress_shirt',
       'price': '1800.00 EGP',
       'image': 'https://res.cloudinary.com/dnka30e3s/image/upload/v1737886187/Cartverse/ubpfrhbdo0e32fmaibvl.jpg'
     },
     {
-      'title': 'Flannel Shirt',
+      'titleKey': 'product_flannel_shirt',
       'price': '1050.00 EGP',
       'image': 'https://res.cloudinary.com/dnka30e3s/image/upload/v1737885895/Cartverse/srsrzcnhyektvc0l5jfr.jpg'
     },
     {
-      'title': 'Striped shirt',
+      'titleKey': 'product_striped_shirt',
       'price': '949.00 EGP',
       'image': 'https://res.cloudinary.com/dnka30e3s/image/upload/v1737886184/Cartverse/z3xv3jtyrsgufh9ek5p8.jpg'
     },
@@ -77,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
       drawer:  CustomDrawer(),
       appBar: AppBar(
         title: Text(
-          'Cartverse',
+          'appTitle'.tr(),
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -117,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'WINTER 2025',
+                          'winter_2025'.tr(),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: const Color(0xFFFFD700),
                             letterSpacing: 1.5,
@@ -125,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Enjoy Our Luxury Collection',
+                          'enjoy_our_luxury_collection'.tr(),
                           textAlign: TextAlign.center,
                           style: theme.textTheme.headlineSmall?.copyWith(
                             color: Colors.white,
@@ -153,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           child: Text(
-                            'SHOP NOW',
+                            'shop_now'.tr(),
                             style: theme.textTheme.labelLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -172,14 +173,14 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 children: [
                   Text(
-                    'New Arrivals',
+                    'new_arrivals'.tr(),
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Discover the latest trends',
+                    'discover_latest_trends'.tr(),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withOpacity(0.6),
                     ),
@@ -223,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  product['title']!,
+                                  product['titleKey']!.tr(),
                                   style: theme.textTheme.bodyLarge?.copyWith(
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -265,7 +266,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Get 20% Off Your First Order!',
+                        'get_20_off'.tr(),
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -273,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Sign up and enjoy exclusive discounts.',
+                        'signup_enjoy_discounts'.tr(),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: Colors.white70,
                         ),
@@ -291,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         child: Text(
-                          'Shop Now',
+                          'shop_now'.tr(),
                           style: theme.textTheme.labelLarge?.copyWith(
                             color: Colors.black,
                           ),
@@ -304,7 +305,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             // Footer Section
-             CustomFooter(),
+            CustomFooter(),
           ],
         ),
       ),

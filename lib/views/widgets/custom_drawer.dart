@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../viewmodels/drawer_menu_viewmodel.dart';
 import '../../viewmodels/dark_mode.dart';
 import '../../models/drawer_menu_item.dart';
+import 'package:fedis/models/wishlist_item_model.dart';
+import 'package:fedis/viewmodels/wishlist_viewmodel.dart';
+import 'package:fedis/viewmodels/cart_viewmodel.dart';
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
@@ -32,7 +36,7 @@ class CustomDrawer extends StatelessWidget {
                           menuVM.navigateToPage('/', context);
                         },
                         child: Text(
-                          'CARTVERSE',
+                          'appTitle'.tr(),
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -60,24 +64,72 @@ class CustomDrawer extends StatelessWidget {
                           .where((item) => !item.isButton)
                           .map((item) => _buildMenuItem(item, menuVM, context, subTextColor)),
                       const SizedBox(height: 40),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Icon(
-                          Icons.shopping_cart_outlined,
-                          color: subTextColor,
-                          size: 28,
+
+                      // Cart Menu Item with Badge
+                      GestureDetector(
+                        onTap: () {
+                          menuVM.navigateToPage('/cart', context);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            children: [
+                              Consumer<CartViewModel>(
+                                builder: (context, cartViewModel, child) {
+                                  return Badge(
+                                    label: Text('${cartViewModel.items.length}'),
+                                    isLabelVisible: cartViewModel.items.isNotEmpty,
+                                    child: Icon(
+                                      Icons.shopping_cart_outlined,
+                                      color: subTextColor,
+                                      size: 28,
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Cart'.tr(),
+                                style: TextStyle(color: subTextColor, fontSize: 16),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
+
                       const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Icon(
-                          Icons.favorite_border,
-                          color: subTextColor,
-                          size: 28,
+
+                      // Wishlist Menu Item
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).pop(); // Close drawer
+                          Navigator.of(context).pushNamed('/wishlist');
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            children: [
+                              Consumer<WishlistViewModel>(
+                                builder: (context, wishlistViewModel, child) {
+                                  return Badge(
+                                    label: Text('${wishlistViewModel.items.length}'),
+                                    isLabelVisible: wishlistViewModel.items.isNotEmpty,
+                                    child: const Icon(Icons.favorite, color: Color(0xFFb88e2f)),
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'wishlist'.tr(),
+                                style: TextStyle(color: subTextColor, fontSize: 16),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
+
                       const SizedBox(height: 40),
+
                       // AUTH AREA
                       menuVM.isLoggedIn
                           ? _buildUserDropdown(context, menuVM, textColor)
@@ -95,9 +147,9 @@ class CustomDrawer extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                               ),
-                              child: const Text(
-                                'Login',
-                                style: TextStyle(
+                              child: Text(
+                                'login'.tr(),
+                                style: const TextStyle(
                                   color: Colors.orange,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -117,9 +169,9 @@ class CustomDrawer extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                               ),
-                              child: const Text(
-                                'Register',
-                                style: TextStyle(
+                              child: Text(
+                                'register'.tr(),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -173,8 +225,13 @@ class CustomDrawer extends StatelessWidget {
                                       ),
                                     );
                                   }).toList(),
-                                  onChanged: (String? newLang) {
+                                  onChanged: (String? newLang) async {
                                     if (newLang != null) {
+                                      if (newLang == 'Arabic') {
+                                        await context.setLocale(const Locale('ar'));
+                                      } else {
+                                        await context.setLocale(const Locale('en'));
+                                      }
                                       menuVM.changeLanguage(newLang);
                                     }
                                   },
@@ -221,7 +278,7 @@ class CustomDrawer extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: ListTile(
         title: Text(
-          item.title,
+          item.titleKey.tr(), // Use .tr() for localization!
           style: TextStyle(
             color: textColor,
             fontSize: 16,
@@ -233,7 +290,6 @@ class CustomDrawer extends StatelessWidget {
     );
   }
 
-  // User dropdown for logged-in user
   Widget _buildUserDropdown(BuildContext context, DrawerMenuViewModel menuVM, Color textColor) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -254,7 +310,7 @@ class CustomDrawer extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  "Welcome, ${menuVM.fullName}",
+                  "welcome_user".tr(args: [menuVM.fullName]),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w500,
@@ -273,7 +329,6 @@ class CustomDrawer extends StatelessWidget {
             menuVM.navigateToPage('/orders', context);
           } else if (value == 3) {
             await menuVM.logout();
-            // ignore: use_build_context_synchronously
             Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
           }
         },
@@ -281,20 +336,20 @@ class CustomDrawer extends StatelessWidget {
           PopupMenuItem(
             value: 1,
             child: Row(
-              children: const [
-                Icon(Icons.person, size: 20),
-                SizedBox(width: 8),
-                Text('Profile'),
+              children: [
+                const Icon(Icons.person, size: 20),
+                const SizedBox(width: 8),
+                Text('profile'.tr()),
               ],
             ),
           ),
           PopupMenuItem(
             value: 2,
             child: Row(
-              children: const [
-                Icon(Icons.list_alt, size: 20),
-                SizedBox(width: 8),
-                Text('Orders'),
+              children: [
+                const Icon(Icons.list_alt, size: 20),
+                const SizedBox(width: 8),
+                Text('orders'.tr()),
               ],
             ),
           ),
@@ -302,10 +357,10 @@ class CustomDrawer extends StatelessWidget {
           PopupMenuItem(
             value: 3,
             child: Row(
-              children: const [
-                Icon(Icons.logout, size: 20),
-                SizedBox(width: 8),
-                Text('Logout'),
+              children: [
+                const Icon(Icons.logout, size: 20),
+                const SizedBox(width: 8),
+                Text('logout'.tr()),
               ],
             ),
           ),

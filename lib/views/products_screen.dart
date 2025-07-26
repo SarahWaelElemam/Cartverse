@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../viewmodels/dark_mode.dart';
+import '../viewmodels/wishlist_viewmodel.dart';
+import '../viewmodels/cart_viewmodel.dart';
+import '../models/cart_item_model.dart';
+import '../models/wishlist_item_model.dart';
 import 'widgets/custom_drawer.dart';
 import 'widgets/custom_footer.dart';
 import 'widgets/success_dialog.dart';
@@ -42,7 +47,7 @@ class ProductsScreen extends StatelessWidget {
                   children: [
                     const SizedBox(height: 16),
                     Text(
-                      '$category Products',
+                      '${category.tr()} ${'products'.tr()}',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -51,14 +56,14 @@ class ProductsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     products.isEmpty
-                        ? const Padding(
-                      padding: EdgeInsets.all(20),
+                        ? Padding(
+                      padding: const EdgeInsets.all(20),
                       child: Text(
-                        'There are no products now.',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                        'no_products'.tr(),
+                        style: const TextStyle(fontSize: 16, color: Colors.grey),
                       ),
                     )
-                        :Wrap(
+                        : Wrap(
                       spacing: 16,
                       runSpacing: 20,
                       children: products.map((product) {
@@ -86,28 +91,56 @@ class ProductsScreen extends StatelessWidget {
                                     Positioned(
                                       top: 8,
                                       right: 8,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          showDialog(
-                                            context: context,
-                                            builder: (_) => SuccessDialog(
-                                              title: 'Added to Wishlist',
-                                              message: '${product['title']} has been added to your wishlist.',
+                                      child: Consumer<WishlistViewModel>(
+                                        builder: (context, wishlistViewModel, child) {
+                                          final isInWishlist = wishlistViewModel.isInWishlist(
+                                            product['titleKey']!.tr(),
+                                            product['image']!,
+                                          );
+
+                                          return GestureDetector(
+                                            onTap: () {
+                                              final wishlistItem = WishlistItem(
+                                                name: product['titleKey']!.tr(),
+                                                price: double.tryParse(product['price']!) ?? 0,
+                                                imageUrl: product['image']!,
+                                                stock: product['stock'],
+                                              );
+
+                                              // Store the current state before toggling
+                                              final wasInWishlist = isInWishlist;
+
+                                              // Toggle wishlist
+                                              wishlistViewModel.toggleWishlist(wishlistItem);
+
+                                              // Show appropriate dialog based on the previous state
+                                              showDialog(
+                                                context: context,
+                                                builder: (_) => SuccessDialog(
+                                                  titleKey: wasInWishlist
+                                                      ? 'wishlist_remove_title'
+                                                      : 'wishlist_success_title',
+                                                  messageKey: wasInWishlist
+                                                      ? 'wishlist_remove_message'
+                                                      : 'wishlist_success_message',
+                                                  messageArgs: [product['titleKey']!.tr()],
+                                                ),
+                                              );
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: const BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: Colors.white,
+                                              ),
+                                              child: Icon(
+                                                isInWishlist ? Icons.favorite : Icons.favorite_border,
+                                                color: const Color(0xFFb88e2f),
+                                                size: 20,
+                                              ),
                                             ),
                                           );
                                         },
-                                        child: Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: Colors.white,
-                                          ),
-                                          child: const Icon(
-                                            Icons.favorite_border,
-                                            color: Color(0xFFb88e2f),
-                                            size: 20,
-                                          ),
-                                        ),
                                       ),
                                     ),
                                   ],
@@ -118,7 +151,7 @@ class ProductsScreen extends StatelessWidget {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        product['title']!,
+                                        product['titleKey']!.tr(),
                                         style: TextStyle(
                                           fontWeight: FontWeight.w600,
                                           fontSize: 14,
@@ -136,7 +169,7 @@ class ProductsScreen extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'You can add ${product['stock']} items',
+                                        'product_stock'.tr(args: [product['stock'] ?? '0']),
                                         style: const TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey,
@@ -150,15 +183,23 @@ class ProductsScreen extends StatelessWidget {
                                             backgroundColor: const Color(0xFFb88e2f),
                                           ),
                                           onPressed: () {
+                                            final cartProvider = Provider.of<CartViewModel>(context, listen: false);
+                                            cartProvider.addItem(CartItem(
+                                              name: product['titleKey']!.tr(),
+                                              price: double.tryParse(product['price']!) ?? 0,
+                                              imageUrl: product['image']!,
+                                            ));
+
                                             showDialog(
                                               context: context,
                                               builder: (_) => SuccessDialog(
-                                                title: 'Added to Cart!',
-                                                message: '${product['title']} has been added to your cart.',
+                                                titleKey: 'cart_success_title',
+                                                messageKey: 'cart_success_message',
+                                                messageArgs: [product['titleKey']!.tr()],
                                               ),
                                             );
                                           },
-                                          child: const Text('Add to Cart'),
+                                          child: Text('add_to_cart'.tr()),
                                         ),
                                       ),
                                     ],
@@ -170,13 +211,13 @@ class ProductsScreen extends StatelessWidget {
                         );
                       }).toList(),
                     ),
-                const SizedBox(height: 30),
-                // 👇 Footer with full width
-                Container(
-                  width: double.infinity,
-                  color: const Color(0xFF1C1C1C),
-                  child: const CustomFooter(),
-                ),
+                    const SizedBox(height: 30),
+                    // 👇 Footer with full width
+                    Container(
+                      width: double.infinity,
+                      color: const Color(0xFF1C1C1C),
+                      child: const CustomFooter(),
+                    ),
                   ],
                 ),
               ),
@@ -189,75 +230,73 @@ class ProductsScreen extends StatelessWidget {
 
   List<Map<String, String>> _getProductsByCategory(String category) {
     switch (category.toLowerCase()) {
-      case 'men':
+      case 'category_men':
         return [
           {
-            'title': 'Striped shirt',
+            'titleKey': 'product_striped_shirt',
             'price': '949.00',
             'stock': '3',
             'image': 'https://res.cloudinary.com/dnka30e3s/image/upload/v1737886184/Cartverse/z3xv3jtyrsgufh9ek5p8.jpg',
           },
           {
-            'title': 'Cotton Hoodie',
+            'titleKey': 'product_cotton_hoodie',
             'price': '1200.00',
             'stock': '5',
             'image': 'https://res.cloudinary.com/dnka30e3s/image/upload/v1737885895/Cartverse/srsrzcnhyektvc0l5jfr.jpg',
           },
           {
-            'title': 'Dress Shirt',
+            'titleKey': 'product_dress_shirt',
             'price': '1800.00',
             'stock': '4',
             'image': 'https://res.cloudinary.com/dnka30e3s/image/upload/v1737886187/Cartverse/ubpfrhbdo0e32fmaibvl.jpg',
           },
           {
-            'title': 'Flannel Shirt',
+            'titleKey': 'product_flannel_shirt',
             'price': '1050.00',
             'stock': '2',
             'image': 'https://res.cloudinary.com/dnka30e3s/image/upload/v1737886184/Cartverse/zp6uvg4u5gbalpffueec.jpg',
           },
         ];
-      case 'women':
+      case 'category_women':
         return [
           {
-            'title': 'Brown Coat',
+            'titleKey': 'product_brown_coat',
             'price': '2100.00',
             'stock': '2',
             'image': 'https://res.cloudinary.com/dnka30e3s/image/upload/v1737886185/Cartverse/iophov43gvx3abpaurov.jpg',
           },
           {
-            'title': 'Black Jacket',
+            'titleKey': 'product_black_jacket',
             'price': '1300.00',
             'stock': '3',
             'image': 'https://res.cloudinary.com/dnka30e3s/image/upload/v1737885895/Cartverse/tsfuikevxfjqmvqk3qsf.jpg',
           },
           {
-            'title': 'Long Coat',
+            'titleKey': 'product_long_coat',
             'price': '2000.00',
             'stock': '5',
             'image': 'https://res.cloudinary.com/dnka30e3s/image/upload/v1737886185/Cartverse/z8kumfeaj1vi9e2idja7.jpg',
           },
-
           {
-            'title': 'Jeans Jacket',
+            'titleKey': 'product_jeans_jacket',
             'price': '1100.00',
             'stock': '4',
             'image': 'https://res.cloudinary.com/dnka30e3s/image/upload/v1737886184/Cartverse/gxhew5uvajqpuecidss8.jpg',
           },
         ];
-      case 'sport':
+      case 'category_sport':
         return [
           {
-            'title': 'Regular Fit Football Shirt',
+            'titleKey': 'product_football_shirt',
             'price': '449.00',
             'stock': '5',
             'image': 'https://cdn-eu.dynamicyield.com/api/9876644/images/1dda9ae79a671__h_m-w40-06102022-7416b-1x1.jpg',
           },
         ];
-      case 'kids':
-        return []; // will display no products now
+      case 'category_kids':
+        return [];
       default:
         return [];
     }
   }
-
 }

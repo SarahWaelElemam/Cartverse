@@ -5,6 +5,11 @@ import 'package:fedis/views/register_screen.dart';
 import 'package:fedis/views/about_screen.dart';
 import 'package:fedis/views/categories_screen.dart';
 import 'package:fedis/views/products_screen.dart';
+import 'package:fedis/views/contact_screen.dart';
+import 'package:fedis/views/cart_screen.dart';
+import 'package:fedis/views/profile_screen.dart';
+import 'package:fedis/views/orders_screen.dart';
+import 'package:fedis/views/wishlist_screen.dart';
 import 'routes.dart';
 
 class CustomRouter {
@@ -21,6 +26,16 @@ class CustomRouter {
           return MaterialPageRoute(builder: (_) => const AboutScreen());
         case categoriesScreen:
           return MaterialPageRoute(builder: (_) => const CategoriesScreen());
+        case '/contact':
+          return MaterialPageRoute(builder: (_) => const ContactScreen());
+        case '/cart':
+          return MaterialPageRoute(builder: (_) => const CartScreen());
+        case '/profile':
+          return MaterialPageRoute(builder: (_) => const ProfileScreen());
+        case '/orders':
+          return MaterialPageRoute(builder: (_) => const OrdersScreen());
+        case '/wishlist':
+          return MaterialPageRoute(builder: (_) => const WishlistScreen());
         case productsScreen:
           final args = settings.arguments as Map<String, dynamic>? ?? {};
           return MaterialPageRoute(

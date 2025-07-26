@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:provider/provider.dart';
-import '../viewmodels/drawer_menu_viewmodel.dart';
-import '../models/drawer_menu_item.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'widgets/custom_drawer.dart';
 import 'widgets/custom_footer.dart';
 import 'products_screen.dart';
@@ -12,19 +10,19 @@ class CategoriesScreen extends StatelessWidget {
 
   final List<Map<String, String>> categories = const [
     {
-      'title': 'Men',
+      'titleKey': 'category_men',
       'image': 'https://res.cloudinary.com/dnka30e3s/image/upload/v1737885895/Cartverse/srsrzcnhyektvc0l5jfr.jpg'
     },
     {
-      'title': 'Women',
+      'titleKey': 'category_women',
       'image': 'https://res.cloudinary.com/dnka30e3s/image/upload/v1737885895/Cartverse/tsfuikevxfjqmvqk3qsf.jpg'
     },
     {
-      'title': 'Kids',
+      'titleKey': 'category_kids',
       'image': 'https://cdn-eu.dynamicyield.com/api/9876644/images/37d243d334c63__hp-w12-22032022-h_m-kids1.jpg'
     },
     {
-      'title': 'Sport',
+      'titleKey': 'category_sport',
       'image': 'https://cdn-eu.dynamicyield.com/api/9876644/images/1dda9ae79a671__h_m-w40-06102022-7416b-1x1.jpg'
     },
   ];
@@ -49,11 +47,11 @@ class CategoriesScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              const Padding(
-                padding: EdgeInsets.only(left: 16.0),
+              Padding(
+                padding: const EdgeInsets.only(left: 16.0),
                 child: Text(
-                  'Categories',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  'categories'.tr(),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 20),
@@ -72,7 +70,7 @@ class CategoriesScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => ProductsScreen(category: category['title']!),
+                            builder: (_) => ProductsScreen(category: category['titleKey']!),
                           ),
                         );
                       },
@@ -90,7 +88,7 @@ class CategoriesScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            category['title']!,
+                            category['titleKey']!.tr(),
                             style: const TextStyle(
                               fontWeight: FontWeight.w500,
                               fontSize: 14,

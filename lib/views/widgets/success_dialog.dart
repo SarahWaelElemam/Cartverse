@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class SuccessDialog extends StatelessWidget {
-  final String title;
-  final String message;
+  final String titleKey;
+  final String messageKey;
+  final List<String>? messageArgs;
 
   const SuccessDialog({
     Key? key,
-    required this.title,
-    required this.message,
+    required this.titleKey,
+    required this.messageKey,
+    this.messageArgs,
   }) : super(key: key);
 
   @override
@@ -20,7 +23,7 @@ class SuccessDialog extends StatelessWidget {
           const Icon(Icons.check_circle, size: 60, color: Colors.green),
           const SizedBox(height: 16),
           Text(
-            title,
+            titleKey.tr(),
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -29,7 +32,7 @@ class SuccessDialog extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            message,
+            messageKey.tr(args: messageArgs ?? []),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 14,
@@ -46,7 +49,7 @@ class SuccessDialog extends StatelessWidget {
               ),
             ),
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK', style: TextStyle(color: Colors.white)),
+            child: Text('ok'.tr(), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

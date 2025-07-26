@@ -1,14 +1,11 @@
-// File: lib/models/drawer_menu_item.dart
-// Folder: models
-
 class DrawerMenuItem {
-  final String title;
+  final String titleKey; // Now stores the translation key, not plain text!
   final String route;
   final bool isButton;
   final bool isPrimary;
 
   DrawerMenuItem({
-    required this.title,
+    required this.titleKey,
     required this.route,
     this.isButton = false,
     this.isPrimary = false,
@@ -18,11 +15,11 @@ class DrawerMenuItem {
 class DrawerMenuData {
   static List<DrawerMenuItem> getMenuItems() {
     return [
-      DrawerMenuItem(title: 'Categories', route: '/categories'),
-      DrawerMenuItem(title: 'About', route: '/about'),
-      DrawerMenuItem(title: 'Contact', route: '/contact'),
-      DrawerMenuItem(title: 'Login', route: '/login', isButton: true),
-      DrawerMenuItem(title: 'Register', route: '/register', isButton: true, isPrimary: true),
+      DrawerMenuItem(titleKey: 'categories', route: '/categories'),
+      DrawerMenuItem(titleKey: 'about', route: '/about'),
+      DrawerMenuItem(titleKey: 'contact', route: '/contact'),
+      DrawerMenuItem(titleKey: 'login', route: '/login', isButton: true),
+      DrawerMenuItem(titleKey: 'register', route: '/register', isButton: true, isPrimary: true),
     ];
   }
 }

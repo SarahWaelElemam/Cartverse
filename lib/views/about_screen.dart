@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'widgets/custom_drawer.dart';
 import 'widgets/custom_footer.dart';
 
@@ -34,7 +35,7 @@ class AboutScreen extends StatelessWidget {
                   height: 240,
                   width: double.infinity,
                   placeholder: (context, url) => Container(color: Colors.grey[200]),
-                  errorWidget: (context, url, error) => Icon(Icons.error),
+                  errorWidget: (context, url, error) => const Icon(Icons.error),
                 ),
                 Container(
                   height: 240,
@@ -45,7 +46,7 @@ class AboutScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Welcome to Cartverse',
+                        'about_welcome_title'.tr(),
                         style: textTheme.headlineMedium!.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -53,7 +54,7 @@ class AboutScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Your destination for premium fashion and exceptional service.',
+                        'about_welcome_subtitle'.tr(),
                         style: textTheme.bodyMedium!.copyWith(
                           color: Colors.white,
                         ),
@@ -75,12 +76,10 @@ class AboutScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Our Story', style: textTheme.headlineMedium),
+                        Text('about_our_story'.tr(), style: textTheme.headlineMedium),
                         const SizedBox(height: 12),
                         Text(
-                          'At Cartverse, we believe in delivering more than just products. '
-                              'We deliver experiences. Founded in 2023, our mission is to provide '
-                              'high-quality fashion that empowers our customers to express their unique style.',
+                          'about_our_story_body'.tr(),
                           style: textTheme.bodyMedium,
                         ),
                       ],
@@ -96,7 +95,7 @@ class AboutScreen extends StatelessWidget {
                         height: 160,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(color: Colors.grey[200]),
-                        errorWidget: (context, url, error) => Icon(Icons.error),
+                        errorWidget: (context, url, error) => const Icon(Icons.error),
                       ),
                     ),
                   ),
@@ -106,7 +105,7 @@ class AboutScreen extends StatelessWidget {
             const SizedBox(height: 50),
             Column(
               children: [
-                Text('Meet our Owner', style: textTheme.headlineMedium),
+                Text('about_owner_title'.tr(), style: textTheme.headlineMedium),
                 const SizedBox(height: 20),
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -117,16 +116,16 @@ class AboutScreen extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      CircleAvatar(
+                      const CircleAvatar(
                         radius: 40,
-                        backgroundImage: const CachedNetworkImageProvider(
+                        backgroundImage: CachedNetworkImageProvider(
                           'https://cart-verse.netlify.app/assets/H1-B0DLqEe5.jpg',
                         ),
                         backgroundColor: Colors.transparent,
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Hisham Rabea',
+                        'about_owner_name'.tr(),
                         style: textTheme.bodyLarge!.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Colors.amber,
@@ -134,7 +133,7 @@ class AboutScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Software Engineer\n@ Giza Systems',
+                        'about_owner_desc'.tr(),
                         textAlign: TextAlign.center,
                         style: textTheme.bodyMedium,
                       ),

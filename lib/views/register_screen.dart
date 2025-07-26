@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:fedis/viewmodels/auth_view_model.dart';
-import 'package:fedis/language/app_localization.dart';
 import 'widgets/custom_drawer.dart';
 import 'widgets/custom_footer.dart';
 
@@ -57,7 +57,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      AppLocalization.of(context)?.translate('user_registration') ?? 'User Registration',
+                      'user_registration'.tr(),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -79,63 +79,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: Column(
                       children: [
                         _buildTextField(
-                          label: AppLocalization.of(context)?.translate('first_name') ?? 'First Name',
+                          label: 'first_name'.tr(),
                           controller: _firstNameController,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return AppLocalization.of(context)?.translate('first_name_required') ?? 'First Name is required';
+                              return 'first_name_required'.tr();
                             }
                             return null;
                           },
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
-                          label: AppLocalization.of(context)?.translate('last_name') ?? 'Last Name',
+                          label: 'last_name'.tr(),
                           controller: _lastNameController,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return AppLocalization.of(context)?.translate('last_name_required') ?? 'Last Name is required';
+                              return 'last_name_required'.tr();
                             }
                             return null;
                           },
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
-                          label: AppLocalization.of(context)?.translate('email') ?? 'Email',
+                          label: 'email'.tr(),
                           controller: _emailController,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return AppLocalization.of(context)?.translate('email_required') ?? 'Email is required';
+                              return 'email_required'.tr();
                             } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                              return AppLocalization.of(context)?.translate('invalid_email') ?? 'Enter a valid email';
+                              return 'invalid_email'.tr();
                             }
                             return null;
                           },
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
-                          label: AppLocalization.of(context)?.translate('password') ?? 'Password',
+                          label: 'password'.tr(),
                           controller: _passwordController,
                           obscure: true,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return AppLocalization.of(context)?.translate('password_required') ?? 'Password is required';
+                              return 'password_required'.tr();
                             } else if (value.length < 6) {
-                              return AppLocalization.of(context)?.translate('password_length') ?? 'Password must be at least 6 characters';
+                              return 'password_length'.tr();
                             }
                             return null;
                           },
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
-                          label: AppLocalization.of(context)?.translate('confirm_password') ?? 'Confirm Password',
+                          label: 'confirm_password'.tr(),
                           controller: _confirmPasswordController,
                           obscure: true,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return AppLocalization.of(context)?.translate('confirm_password_required') ?? 'Confirm Password is required';
+                              return 'confirm_password_required'.tr();
                             } else if (value != _passwordController.text) {
-                              return AppLocalization.of(context)?.translate('password_mismatch') ?? 'Passwords do not match';
+                              return 'password_mismatch'.tr();
                             }
                             return null;
                           },
@@ -155,7 +155,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           )
                               : Text(
-                            AppLocalization.of(context)?.translate('register') ?? 'Register',
+                            'register'.tr(),
                           ),
                         ),
                         if (authViewModel.errorMessage != null) ...[

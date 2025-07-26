@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:fedis/viewmodels/auth_view_model.dart';
-import 'package:fedis/language/app_localization.dart';
 import 'widgets/custom_drawer.dart';
 import 'widgets/custom_footer.dart';
 
@@ -36,7 +36,7 @@ class LoginScreen extends StatelessWidget {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    AppLocalization.of(context)?.translate('welcome_back') ?? 'Welcome Back',
+                    'welcome_back'.tr(),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -59,12 +59,12 @@ class LoginScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _buildTextField(
-                        label: AppLocalization.of(context)?.translate('email') ?? 'Email Address',
+                        label: 'email'.tr(),
                         controller: email,
                       ),
                       const SizedBox(height: 12),
                       _buildTextField(
-                        label: AppLocalization.of(context)?.translate('password') ?? 'Password',
+                        label: 'password'.tr(),
                         obscure: true,
                         controller: password,
                       ),
@@ -79,8 +79,8 @@ class LoginScreen extends StatelessWidget {
                             : () {
                           if (email.text.trim().isEmpty || password.text.trim().isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please fill in all fields'),
+                              SnackBar(
+                                content: Text('please_fill_fields'.tr()),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -102,7 +102,7 @@ class LoginScreen extends StatelessWidget {
                           ),
                         )
                             : Text(
-                          AppLocalization.of(context)?.translate('login') ?? 'Login',
+                          'login'.tr(),
                         ),
                       ),
                       if (authViewModel.errorMessage != null) ...[
