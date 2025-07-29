@@ -7,13 +7,55 @@ import '../models/register_model.dart';
 import '../utils/urls.dart';
 import '../utils/cache_helper.dart';
 import '../viewmodels/drawer_menu_viewmodel.dart';
+import '../viewmodels/cart_viewmodel.dart';
+import '../viewmodels/wishlist_viewmodel.dart';
+import '../viewmodels/orders_viewmodel.dart';
 
 class AuthViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
+  User? _currentUser;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  User? get currentUser => _currentUser;
+  bool get isLoggedIn => _currentUser != null;
+
+  // Initialize auth state from cache
+  Future<void> initializeAuth(BuildContext context) async {
+    try {
+      final token = CacheHelper.getString('token');
+      final isLoggedIn = CacheHelper.getBool('isLoggedIn') ?? false;
+      final firstName = CacheHelper.getString('firstName');
+      final lastName = CacheHelper.getString('lastName');
+      final email = CacheHelper.getString('email');
+      final userId = CacheHelper.getInt('userId');
+
+      if (isLoggedIn && token != null && token.isNotEmpty) {
+        _currentUser = User(
+          id: userId,
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+        );
+
+        // Update drawer menu state
+        if (context.mounted) {
+          Provider.of<DrawerMenuViewModel>(context, listen: false).login(
+            firstName ?? '',
+            lastName ?? '',
+          );
+
+          // Load user-specific data
+          await _loadUserData(context);
+        }
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error initializing auth: $e');
+      await logout(context);
+    }
+  }
 
   Future<void> login(String email, String password, BuildContext context) async {
     _isLoading = true;
@@ -22,7 +64,7 @@ class AuthViewModel extends ChangeNotifier {
 
     try {
       final response = await http.post(
-        Uri.https(Api.baseUrl, '/login'),
+        Uri.parse('https://cartverse-data.onrender.com/login'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -37,50 +79,31 @@ class AuthViewModel extends ChangeNotifier {
       print('Login Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        try {
-          final data = convert.jsonDecode(response.body);
-          print('Parsed Login Data: $data');
-
-          if (data == null || data is! Map<String, dynamic>) {
-            throw Exception('Invalid response format');
-          }
-
-          if (data['user'] == null) {
-            throw Exception('User data not found in response');
-          }
-
-          final loginModel = LoginModel.fromJson(data);
-          await _saveLoginData(loginModel, context);
-
-          // Show success dialog and navigate after user closes it
-          await _showLoginSuccessDialog(context, loginModel.user?.firstName);
-        } catch (parseError) {
-          print('JSON Parse Error: $parseError');
-          _errorMessage = 'Failed to process server response';
-          _showSnackBar(context, _errorMessage!, Colors.red);
-        }
+        final loginModel = LoginModel.fromJson(convert.jsonDecode(response.body));
+        _currentUser = loginModel.user;
+        await _saveLoginData(loginModel, context);
+        await _loadUserData(context);
+        await _showLoginSuccessDialog(context, loginModel.user?.firstName);
+      } else if (response.statusCode == 401) {
+        _errorMessage = 'Invalid email or password';
+        _showSnackBar(context, _errorMessage!, Colors.red);
       } else {
-        try {
-          final errorData = convert.jsonDecode(response.body);
-          _errorMessage = errorData['message'] ?? 'Login failed with status: ${response.statusCode}';
-        } catch (e) {
-          _errorMessage = 'Login failed with status: ${response.statusCode}';
-        }
+        final errorData = convert.jsonDecode(response.body);
+        _errorMessage = errorData['message'] ?? 'Login failed. Please try again.';
         _showSnackBar(context, _errorMessage!, Colors.red);
       }
     } on http.ClientException catch (e) {
-      _errorMessage = 'Network error: ${e.message}';
+      _errorMessage = 'Network error. Please check your connection.';
       _showSnackBar(context, _errorMessage!, Colors.red);
     } catch (e) {
       print('Login Error: $e');
-      _errorMessage = 'Login failed: ${e.toString()}';
+      _errorMessage = 'Login failed. Please try again.';
       _showSnackBar(context, _errorMessage!, Colors.red);
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
-
   Future<void> _saveLoginData(LoginModel loginModel, BuildContext context) async {
     try {
       await Future.wait([
@@ -88,6 +111,7 @@ class AuthViewModel extends ChangeNotifier {
         CacheHelper.setString('firstName', loginModel.user?.firstName ?? ''),
         CacheHelper.setString('lastName', loginModel.user?.lastName ?? ''),
         CacheHelper.setString('email', loginModel.user?.email ?? ''),
+        CacheHelper.setInt('userId', loginModel.user?.id ?? 0),
         CacheHelper.setBool('isLoggedIn', true),
       ]);
 
@@ -115,8 +139,8 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      var response = await http.post(
-        Uri.https(Api.baseUrl, '/register'),
+      final response = await http.post(
+        Uri.parse('https://cartverse-data.onrender.com/register'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -129,50 +153,80 @@ class AuthViewModel extends ChangeNotifier {
         }),
       ).timeout(const Duration(seconds: 30));
 
-      // Handle redirect responses
-      if (response.statusCode == 307 || response.statusCode == 308) {
-        final redirectUrl = response.headers['location'];
-        if (redirectUrl != null) {
-          response = await http.post(
-            Uri.parse(redirectUrl),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: convert.jsonEncode({
-              'firstName': firstName,
-              'lastName': lastName,
-              'email': email,
-              'password': password,
-            }),
-          );
-        }
-      }
+      print('Register Response Status: ${response.statusCode}');
+      print('Register Response Body: ${response.body}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = convert.jsonDecode(response.body);
-        RegisterModel.fromJson(data); // Validate response
-
-        _showSnackBar(context, 'Registration successful! Please login with your credentials.', Colors.green);
-
-        // Navigate to login screen after successful registration
+        // Success case
+        _showSnackBar(context, 'Registration successful! Please login.', Colors.green);
         if (context.mounted) {
           Navigator.pushReplacementNamed(context, '/login');
         }
-      } else {
+      } else if (response.statusCode == 409) {
+        // Email already exists case
         final errorData = convert.jsonDecode(response.body);
-        _errorMessage = errorData['message'] ?? 'Registration failed';
+        _errorMessage = errorData['message'] ?? 'Email is already registered.';
+        _showSnackBar(context, _errorMessage!, Colors.red);
+      } else {
+        // Other error cases
+        try {
+          final errorData = convert.jsonDecode(response.body);
+          _errorMessage = errorData['message'] ?? 'Registration failed. Please try again.';
+        } catch (e) {
+          _errorMessage = 'Registration failed (${response.statusCode}). Please try again.';
+        }
         _showSnackBar(context, _errorMessage!, Colors.red);
       }
     } on http.ClientException catch (e) {
-      _errorMessage = 'Network error: ${e.message}';
+      _errorMessage = 'Network error. Please check your connection.';
       _showSnackBar(context, _errorMessage!, Colors.red);
     } catch (e) {
-      _errorMessage = 'Registration failed: ${e.toString()}';
+      print('Registration Error: $e');
+      _errorMessage = 'Registration failed. Please try again.';
       _showSnackBar(context, _errorMessage!, Colors.red);
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> logout(BuildContext context) async {
+    try {
+      // Clear local data
+      if (context.mounted) {
+        Provider.of<CartViewModel>(context, listen: false).clearCart();
+        Provider.of<WishlistViewModel>(context, listen: false).clearWishlist();
+        Provider.of<OrdersViewModel>(context, listen: false).clearOrders();
+        Provider.of<DrawerMenuViewModel>(context, listen: false).logout();
+      }
+
+      // Clear cache
+      await CacheHelper.clear();
+
+      _currentUser = null;
+      _errorMessage = null;
+      notifyListeners();
+
+      // Navigate to home
+      if (context.mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+      }
+    } catch (e) {
+      print('Logout Error: $e');
+    }
+  }
+
+  Future<void> _loadUserData(BuildContext context) async {
+    if (_currentUser?.id == null || !context.mounted) return;
+
+    try {
+      // Load user orders and wishlist
+      await Future.wait([
+        Provider.of<OrdersViewModel>(context, listen: false).loadUserOrders(_currentUser!.id!),
+        Provider.of<WishlistViewModel>(context, listen: false).loadUserWishlist(_currentUser!.id!),
+      ]);
+    } catch (e) {
+      print('Error loading user data: $e');
     }
   }
 
@@ -182,7 +236,7 @@ class AuthViewModel extends ChangeNotifier {
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         title: const Text('Login Successful'),
-        content: Text('Welcome, ${firstName ?? 'User'}!'),
+        content: Text('Welcome back, ${firstName ?? 'User'}!'),
         actions: [
           TextButton(
             onPressed: () {
@@ -207,5 +261,10 @@ class AuthViewModel extends ChangeNotifier {
         ),
       );
     }
+  }
+
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
   }
 }

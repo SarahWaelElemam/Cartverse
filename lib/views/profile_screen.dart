@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fedis/viewmodels/drawer_menu_viewmodel.dart';
+import 'package:fedis/viewmodels/auth_view_model.dart'; // Add this import
 import 'widgets/custom_drawer.dart';
 import 'widgets/custom_footer.dart';
 import 'orders_screen.dart';
@@ -33,8 +34,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         elevation: 0,
       ),
-      body: Consumer<DrawerMenuViewModel>(
-        builder: (context, drawerViewModel, child) {
+      body: Consumer2<DrawerMenuViewModel, AuthViewModel>( // Changed to Consumer2 to access both ViewModels
+        builder: (context, drawerViewModel, authViewModel, child) {
           final isDark = Theme.of(context).brightness == Brightness.dark;
 
           return SingleChildScrollView(
@@ -83,7 +84,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: selectedIndex == 0
-                                    ? _buildAccountInfo(drawerViewModel)
+                                    ? _buildAccountInfo(drawerViewModel, authViewModel) // Pass authViewModel
                                     : _buildOrdersContent(),
                               ),
                             ],
@@ -133,7 +134,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildAccountInfo(DrawerMenuViewModel drawerViewModel) {
+  Widget _buildAccountInfo(DrawerMenuViewModel drawerViewModel, AuthViewModel authViewModel) { // Added authViewModel parameter
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -156,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 12),
           _buildInfoField('last_name'.tr(), drawerViewModel.lastName),
           const SizedBox(height: 12),
-          _buildInfoField('email'.tr(), 'sarah@gmail.com'), // Add your dynamic email if available
+          _buildInfoField('email'.tr(), authViewModel.currentUser?.email ?? 'N/A'), // Use dynamic email
         ],
       ),
     );

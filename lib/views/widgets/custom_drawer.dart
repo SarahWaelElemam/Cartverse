@@ -65,68 +65,71 @@ class CustomDrawer extends StatelessWidget {
                           .map((item) => _buildMenuItem(item, menuVM, context, subTextColor)),
                       const SizedBox(height: 40),
 
-                      // Cart Menu Item with Badge
-                      GestureDetector(
-                        onTap: () {
-                          menuVM.navigateToPage('/cart', context);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Row(
-                            children: [
-                              Consumer<CartViewModel>(
-                                builder: (context, cartViewModel, child) {
-                                  return Badge(
-                                    label: Text('${cartViewModel.items.length}'),
-                                    isLabelVisible: cartViewModel.items.isNotEmpty,
-                                    child: Icon(
-                                      Icons.shopping_cart_outlined,
-                                      color: subTextColor,
-                                      size: 28,
-                                    ),
-                                  );
-                                },
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                'Cart'.tr(),
-                                style: TextStyle(color: subTextColor, fontSize: 16),
-                              ),
-                            ],
+                      // Only show Cart and Wishlist if user is logged in
+                      if (menuVM.isLoggedIn) ...[
+                        // Cart Menu Item with Badge
+                        GestureDetector(
+                          onTap: () {
+                            menuVM.navigateToPage('/cart', context);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Row(
+                              children: [
+                                Consumer<CartViewModel>(
+                                  builder: (context, cartViewModel, child) {
+                                    return Badge(
+                                      label: Text('${cartViewModel.items.length}'),
+                                      isLabelVisible: cartViewModel.items.isNotEmpty,
+                                      child: Icon(
+                                        Icons.shopping_cart_outlined,
+                                        color: subTextColor,
+                                        size: 28,
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Cart'.tr(),
+                                  style: TextStyle(color: subTextColor, fontSize: 16),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
 
-                      const SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
-                      // Wishlist Menu Item
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).pop(); // Close drawer
-                          Navigator.of(context).pushNamed('/wishlist');
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Row(
-                            children: [
-                              Consumer<WishlistViewModel>(
-                                builder: (context, wishlistViewModel, child) {
-                                  return Badge(
-                                    label: Text('${wishlistViewModel.items.length}'),
-                                    isLabelVisible: wishlistViewModel.items.isNotEmpty,
-                                    child: const Icon(Icons.favorite, color: Color(0xFFb88e2f)),
-                                  );
-                                },
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                'wishlist'.tr(),
-                                style: TextStyle(color: subTextColor, fontSize: 16),
-                              ),
-                            ],
+                        // Wishlist Menu Item
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).pop(); // Close drawer
+                            Navigator.of(context).pushNamed('/wishlist');
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Row(
+                              children: [
+                                Consumer<WishlistViewModel>(
+                                  builder: (context, wishlistViewModel, child) {
+                                    return Badge(
+                                      label: Text('${wishlistViewModel.items.length}'),
+                                      isLabelVisible: wishlistViewModel.items.isNotEmpty,
+                                      child: const Icon(Icons.favorite, color: Color(0xFFb88e2f)),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'wishlist'.tr(),
+                                  style: TextStyle(color: subTextColor, fontSize: 16),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
+                      ],
 
                       const SizedBox(height: 40),
 

@@ -7,20 +7,70 @@ import '../viewmodels/wishlist_viewmodel.dart';
 import '../viewmodels/cart_viewmodel.dart';
 import '../models/cart_item_model.dart';
 import '../models/wishlist_item_model.dart';
+import '../utils/cache_helper.dart';
 import 'widgets/custom_drawer.dart';
 import 'widgets/custom_footer.dart';
 import 'widgets/success_dialog.dart';
 
-class ProductsScreen extends StatelessWidget {
+class ProductsScreen extends StatefulWidget {
   final String category;
   const ProductsScreen({super.key, required this.category});
+
+  @override
+  State<ProductsScreen> createState() => _ProductsScreenState();
+}
+
+class _ProductsScreenState extends State<ProductsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize stock when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeStock();
+    });
+  }
+
+  void _initializeStock() {
+    final products = _getProductsByCategory(widget.category);
+    final stockMap = <String, int>{};
+
+    for (final product in products) {
+      final stock = int.tryParse(product['stock'] ?? '0') ?? 0;
+      stockMap[product['titleKey']!] = stock;
+    }
+
+    if (mounted) {
+      Provider.of<CartViewModel>(context, listen: false).initializeStock(stockMap);
+    }
+  }
+
+  // Helper method to check if user is logged in
+  bool _isUserLoggedIn() {
+    final token = CacheHelper.getString('token');
+    final userId = CacheHelper.getInt('userId');
+    return token != null && token.isNotEmpty && userId != null;
+  }
+
+  // Helper method to show login prompt dialog
+  void _showLoginPromptDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => SuccessDialog(
+        titleKey: 'login_required'.tr(),
+        messageKey: 'login_first_message'.tr(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Provider.of<DarkModeProvider>(context).isDarkMode;
     final textColor = isDark ? Colors.white : Colors.black;
 
-    final products = _getProductsByCategory(category);
+    // Check if current locale is RTL (Arabic)
+    final isRTL = Localizations.localeOf(context).languageCode == 'ar';
+
+    final products = _getProductsByCategory(widget.category);
 
     return Scaffold(
       drawer: const CustomDrawer(),
@@ -29,8 +79,12 @@ class ProductsScreen extends StatelessWidget {
           children: [
             Container(
               height: 60,
-              padding: const EdgeInsets.only(left: 20, top: 15),
-              alignment: Alignment.centerLeft,
+              padding: EdgeInsets.only(
+                left: isRTL ? 0 : 20,
+                right: isRTL ? 20 : 0,
+                top: 15,
+              ),
+              alignment: isRTL ? Alignment.centerRight : Alignment.centerLeft,
               color: isDark ? Colors.black : Colors.white,
               child: Builder(
                 builder: (context) => GestureDetector(
@@ -47,7 +101,7 @@ class ProductsScreen extends StatelessWidget {
                   children: [
                     const SizedBox(height: 16),
                     Text(
-                      '${category.tr()} ${'products'.tr()}',
+                      '${widget.category.tr()} ${'products'.tr()}',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -90,18 +144,27 @@ class ProductsScreen extends StatelessWidget {
                                     ),
                                     Positioned(
                                       top: 8,
-                                      right: 8,
+                                      right: isRTL ? null : 8,
+                                      left: isRTL ? 8 : null,
                                       child: Consumer<WishlistViewModel>(
                                         builder: (context, wishlistViewModel, child) {
                                           final isInWishlist = wishlistViewModel.isInWishlist(
-                                            product['titleKey']!.tr(),
+                                            product['titleKey']!,
                                             product['image']!,
                                           );
 
                                           return GestureDetector(
                                             onTap: () {
+                                              // Check if user is logged in
+                                              if (!_isUserLoggedIn()) {
+                                                _showLoginPromptDialog(context);
+                                                return;
+                                              }
+
                                               final wishlistItem = WishlistItem(
-                                                name: product['titleKey']!.tr(),
+                                                id: '${product['titleKey']}_${product['image']}', // Create a unique ID
+                                                name: product['titleKey']!.tr(), // Fallback name
+                                                titleKey: product['titleKey']!, // Translation key
                                                 price: double.tryParse(product['price']!) ?? 0,
                                                 imageUrl: product['image']!,
                                                 stock: product['stock'],
@@ -118,12 +181,11 @@ class ProductsScreen extends StatelessWidget {
                                                 context: context,
                                                 builder: (_) => SuccessDialog(
                                                   titleKey: wasInWishlist
-                                                      ? 'wishlist_remove_title'
-                                                      : 'wishlist_success_title',
+                                                      ? 'product_removed'.tr()
+                                                      : 'wishlist_success_title'.tr(),
                                                   messageKey: wasInWishlist
-                                                      ? 'wishlist_remove_message'
-                                                      : 'wishlist_success_message',
-                                                  messageArgs: [product['titleKey']!.tr()],
+                                                      ? 'item_removed_from_wishlist'.tr()
+                                                      : 'wishlist_success_message'.tr(args: [product['titleKey']!.tr()]),
                                                 ),
                                               );
                                             },
@@ -160,7 +222,7 @@ class ProductsScreen extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '${product['price']} EGP',
+                                        '${product['price']} ${'currency'.tr()}',
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w500,
                                           fontSize: 13,
@@ -168,39 +230,246 @@ class ProductsScreen extends StatelessWidget {
                                         ),
                                       ),
                                       const SizedBox(height: 4),
-                                      Text(
-                                        'product_stock'.tr(args: [product['stock'] ?? '0']),
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                        ),
+                                      Consumer<CartViewModel>(
+                                        builder: (context, cartViewModel, child) {
+                                          final availableStock = cartViewModel.getAvailableStock(product['titleKey']!);
+                                          return Text(
+                                            'product_stock'.tr(args: [availableStock.toString()]),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: availableStock > 0 ? Colors.grey : Colors.red,
+                                            ),
+                                          );
+                                        },
                                       ),
                                       const SizedBox(height: 10),
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFFb88e2f),
-                                          ),
-                                          onPressed: () {
-                                            final cartProvider = Provider.of<CartViewModel>(context, listen: false);
-                                            cartProvider.addItem(CartItem(
-                                              name: product['titleKey']!.tr(),
-                                              price: double.tryParse(product['price']!) ?? 0,
-                                              imageUrl: product['image']!,
-                                            ));
+                                      // Enhanced Add to Cart Section with Quantity Controls
+                                      Consumer<CartViewModel>(
+                                        builder: (context, cartViewModel, child) {
+                                          final productTitleKey = product['titleKey']!;
+                                          final productImage = product['image']!;
+                                          final cartItem = cartViewModel.getCartItem(productTitleKey, productImage);
+                                          final currentQuantity = cartItem?.quantity ?? 0;
+                                          final isInCart = cartItem != null;
+                                          final availableStock = cartViewModel.getAvailableStock(productTitleKey);
+                                          final canAddMore = cartViewModel.canAddItem(productTitleKey, productImage);
 
-                                            showDialog(
-                                              context: context,
-                                              builder: (_) => SuccessDialog(
-                                                titleKey: 'cart_success_title',
-                                                messageKey: 'cart_success_message',
-                                                messageArgs: [product['titleKey']!.tr()],
+                                          // If no stock available, show out of stock
+                                          if (availableStock <= 0) {
+                                            return Container(
+                                              width: double.infinity,
+                                              padding: const EdgeInsets.symmetric(vertical: 8),
+                                              decoration: BoxDecoration(
+                                                color: Colors.red.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(color: Colors.red, width: 1),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  'out_of_stock'.tr(),
+                                                  style: const TextStyle(
+                                                    color: Colors.red,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
                                               ),
                                             );
-                                          },
-                                          child: Text('add_to_cart'.tr()),
-                                        ),
+                                          }
+
+                                          return AnimatedContainer(
+                                            duration: const Duration(milliseconds: 300),
+                                            constraints: const BoxConstraints(
+                                              minWidth: double.infinity,
+                                            ),
+                                            child: isInCart
+                                                ? Container(
+                                              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFb88e2f).withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: const Color(0xFFb88e2f),
+                                                  width: 1,
+                                                ),
+                                              ),
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  // Quantity controls row
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      // Decrease button
+                                                      GestureDetector(
+                                                        onTap: () {
+                                                          if (!_isUserLoggedIn()) {
+                                                            _showLoginPromptDialog(context);
+                                                            return;
+                                                          }
+
+                                                          if (currentQuantity > 1) {
+                                                            cartViewModel.updateQuantity(cartItem!, currentQuantity - 1);
+                                                          } else {
+                                                            cartViewModel.removeItem(cartItem!);
+                                                          }
+                                                        },
+                                                        child: Container(
+                                                          width: 26,
+                                                          height: 26,
+                                                          decoration: BoxDecoration(
+                                                            color: const Color(0xFFb88e2f),
+                                                            borderRadius: BorderRadius.circular(4),
+                                                          ),
+                                                          child: const Icon(
+                                                            Icons.remove,
+                                                            color: Colors.white,
+                                                            size: 16,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      // Quantity display with animation
+                                                      Expanded(
+                                                        child: AnimatedSwitcher(
+                                                          duration: const Duration(milliseconds: 200),
+                                                          child: Container(
+                                                            key: ValueKey(currentQuantity),
+                                                            child: Column(
+                                                              mainAxisSize: MainAxisSize.min,
+                                                              children: [
+                                                                Text(
+                                                                  currentQuantity.toString(),
+                                                                  style: const TextStyle(
+                                                                    fontSize: 16,
+                                                                    fontWeight: FontWeight.bold,
+                                                                    color: Color(0xFFb88e2f),
+                                                                  ),
+                                                                ),
+                                                                Text(
+                                                                  'in_cart'.tr(),
+                                                                  style: const TextStyle(
+                                                                    fontSize: 9,
+                                                                    color: Color(0xFFb88e2f),
+                                                                  ),
+                                                                  textAlign: TextAlign.center,
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      // Increase button
+                                                      GestureDetector(
+                                                        onTap: canAddMore ? () {
+                                                          if (!_isUserLoggedIn()) {
+                                                            _showLoginPromptDialog(context);
+                                                            return;
+                                                          }
+
+                                                          final newItem = CartItem(
+                                                            name: productTitleKey.tr(), // Fallback name
+                                                            titleKey: productTitleKey, // Translation key
+                                                            price: double.tryParse(product['price']!) ?? 0,
+                                                            imageUrl: productImage,
+                                                          );
+                                                          cartViewModel.addItem(newItem);
+                                                        } : null,
+                                                        child: Container(
+                                                          width: 26,
+                                                          height: 26,
+                                                          decoration: BoxDecoration(
+                                                            color: canAddMore
+                                                                ? const Color(0xFFb88e2f)
+                                                                : Colors.grey,
+                                                            borderRadius: BorderRadius.circular(4),
+                                                          ),
+                                                          child: const Icon(
+                                                            Icons.add,
+                                                            color: Colors.white,
+                                                            size: 16,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  // Remove from cart button
+                                                  GestureDetector(
+                                                    onTap: () {
+                                                      cartViewModel.removeItem(cartItem!);
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text('removed_from_cart'.tr(args: [productTitleKey.tr()])),
+                                                          backgroundColor: Colors.red,
+                                                          duration: const Duration(seconds: 2),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: Text(
+                                                      'remove_from_cart'.tr(),
+                                                      style: const TextStyle(
+                                                        color: Colors.red,
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                      textAlign: TextAlign.center,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                                : SizedBox(
+                                              width: double.infinity, // Ensure full width
+                                              child: ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFFb88e2f),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                                ),
+                                                onPressed: () {
+                                                  // Check if user is logged in
+                                                  if (!_isUserLoggedIn()) {
+                                                    _showLoginPromptDialog(context);
+                                                    return;
+                                                  }
+
+                                                  final cartProvider = Provider.of<CartViewModel>(context, listen: false);
+                                                  cartProvider.addItem(CartItem(
+                                                    name: productTitleKey.tr(), // Fallback name
+                                                    titleKey: productTitleKey, // Translation key
+                                                    price: double.tryParse(product['price']!) ?? 0,
+                                                    imageUrl: productImage,
+                                                  ));
+
+                                                  // Show success snackbar instead of dialog for better UX
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('added_to_cart'.tr(args: [productTitleKey.tr()])),
+                                                      backgroundColor: const Color(0xFFb88e2f),
+                                                      duration: const Duration(seconds: 2),
+                                                      behavior: SnackBarBehavior.floating,
+                                                    ),
+                                                  );
+                                                },
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  mainAxisSize: MainAxisSize.min, // Prevent overflow
+                                                  children: [
+                                                    const Icon(Icons.add_shopping_cart, size: 16),
+                                                    const SizedBox(width: 4),
+                                                    Flexible(
+                                                      child: Text(
+                                                        'add_to_cart'.tr(),
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ],
                                   ),

@@ -29,6 +29,9 @@ class CategoriesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Check if current locale is RTL (Arabic)
+    final isRTL = Localizations.localeOf(context).languageCode == 'ar';
+
     return Scaffold(
       drawer: const CustomDrawer(),
       body: SafeArea(
@@ -37,8 +40,12 @@ class CategoriesScreen extends StatelessWidget {
             children: [
               Container(
                 height: 60,
-                padding: const EdgeInsets.only(left: 20, top: 15),
-                alignment: Alignment.centerLeft,
+                padding: EdgeInsets.only(
+                  left: isRTL ? 0 : 20,
+                  right: isRTL ? 20 : 0,
+                  top: 15,
+                ),
+                alignment: isRTL ? Alignment.centerRight : Alignment.centerLeft,
                 child: Builder(
                   builder: (context) => GestureDetector(
                     onTap: () => Scaffold.of(context).openDrawer(),

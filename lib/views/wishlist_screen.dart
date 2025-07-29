@@ -12,6 +12,15 @@ import 'package:easy_localization/easy_localization.dart';
 class WishlistScreen extends StatelessWidget {
   const WishlistScreen({super.key});
 
+  // Helper method to get translated name
+  String _getTranslatedName(WishlistItem item, BuildContext context) {
+    // If titleKey exists, use it for translation, otherwise fallback to name
+    if (item.titleKey != null && item.titleKey!.isNotEmpty) {
+      return item.titleKey!.tr();
+    }
+    return item.name;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -124,7 +133,7 @@ class WishlistScreen extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      item.name,
+                                      _getTranslatedName(item, context),
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
@@ -168,20 +177,23 @@ class WishlistScreen extends StatelessWidget {
                                           minimumSize: const Size(60, 30),
                                         ),
                                         onPressed: () {
-                                          // Add to cart
+                                          // Add to cart with translated name
                                           cartViewModel.addItem(CartItem(
-                                            name: item.name,
+                                            name: _getTranslatedName(item, context),
+                                            titleKey: item.titleKey,
                                             price: item.price,
                                             imageUrl: item.imageUrl,
+                                            quantity: 1, // ✅ explicitly added for safety
                                           ));
 
-                                          // Show success dialog
+
+                                          // Show success dialog with translated name
                                           showDialog(
                                             context: context,
                                             builder: (_) => SuccessDialog(
                                               titleKey: 'cart_success_title',
                                               messageKey: 'cart_success_message',
-                                              messageArgs: [item.name],
+                                              messageArgs: [_getTranslatedName(item, context)],
                                             ),
                                           );
                                         },
@@ -197,6 +209,7 @@ class WishlistScreen extends StatelessWidget {
                                     },
                                   ),
                                   const SizedBox(height: 8),
+                                  // In your WishlistScreen build method, update the remove button:
                                   ElevatedButton(
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.red,
@@ -206,8 +219,23 @@ class WishlistScreen extends StatelessWidget {
                                       ),
                                       minimumSize: const Size(60, 30),
                                     ),
-                                    onPressed: () {
-                                      wishlistViewModel.removeItem(item);
+                                    onPressed: () async {
+                                      final success = await wishlistViewModel.removeItem(item);
+                                      if (success) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('item_removed_from_wishlist'.tr()),
+                                            backgroundColor: Colors.green,
+                                          ),
+                                        );
+                                      } else if (wishlistViewModel.errorMessage != null) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(wishlistViewModel.errorMessage!),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
                                     },
                                     child: Text(
                                       'remove'.tr(),

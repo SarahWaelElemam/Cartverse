@@ -6,6 +6,7 @@ import 'package:easy_localization/easy_localization.dart';
 import '../viewmodels/drawer_menu_viewmodel.dart';
 import 'widgets/custom_drawer.dart';
 import 'widgets/custom_footer.dart';
+import 'products_screen.dart'; // <-- Make sure this import exists
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -75,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      drawer:  CustomDrawer(),
+      drawer: CustomDrawer(),
       appBar: AppBar(
         title: Text(
           'appTitle'.tr(),
@@ -195,50 +196,61 @@ class _HomeScreenState extends State<HomeScreen> {
                         final product = products[index];
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Card(
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: ClipRRect(
-                                    borderRadius: const BorderRadius.vertical(
-                                        top: Radius.circular(12)),
-                                    child: CachedNetworkImage(
-                                      imageUrl: product['image']!,
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                      placeholder: (context, url) => Center(
-                                        child: CircularProgressIndicator(
-                                          color: theme.colorScheme.primary,
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                  const ProductsScreen(category: 'category_men'),
+                                ),
+                              );
+                            },
+                            child: Card(
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                children: [
+                                  Expanded(
+                                    child: ClipRRect(
+                                      borderRadius:
+                                      const BorderRadius.vertical(top: Radius.circular(12)),
+                                      child: CachedNetworkImage(
+                                        imageUrl: product['image']!,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        placeholder: (context, url) => Center(
+                                          child: CircularProgressIndicator(
+                                            color: theme.colorScheme.primary,
+                                          ),
                                         ),
-                                      ),
-                                      errorWidget: (context, url, error) => Icon(
-                                        Icons.error,
-                                        color: theme.colorScheme.error,
+                                        errorWidget: (context, url, error) => Icon(
+                                          Icons.error,
+                                          color: theme.colorScheme.error,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  product['titleKey']!.tr(),
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.w500,
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    product['titleKey']!.tr(),
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  product['price']!,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.orange,
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    product['price']!,
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                              ],
+                                  const SizedBox(height: 8),
+                                ],
+                              ),
                             ),
                           ),
                         );

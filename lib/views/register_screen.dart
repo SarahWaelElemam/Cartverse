@@ -21,6 +21,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // Clear any previous error messages when entering the screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AuthViewModel>(context, listen: false).clearError();
+    });
+  }
+
+  @override
   void dispose() {
     _firstNameController.dispose();
     _lastNameController.dispose();
@@ -44,6 +53,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
+        title: Text('appTitle'.tr()),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -82,8 +92,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           label: 'first_name'.tr(),
                           controller: _firstNameController,
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
+                            if (value == null || value.trim().isEmpty) {
                               return 'first_name_required'.tr();
+                            }
+                            if (value.trim().length < 2) {
+                              return 'first_name_min_length'.tr();
                             }
                             return null;
                           },
@@ -93,8 +106,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           label: 'last_name'.tr(),
                           controller: _lastNameController,
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
+                            if (value == null || value.trim().isEmpty) {
                               return 'last_name_required'.tr();
+                            }
+                            if (value.trim().length < 2) {
+                              return 'last_name_min_length'.tr();
                             }
                             return null;
                           },
@@ -104,9 +120,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           label: 'email'.tr(),
                           controller: _emailController,
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
+                            if (value == null || value.trim().isEmpty) {
                               return 'email_required'.tr();
-                            } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                            } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
                               return 'invalid_email'.tr();
                             }
                             return null;
@@ -142,6 +158,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 24),
                         ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFc69400),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
                           onPressed: authViewModel.isLoading
                               ? null
                               : () => _submitForm(authViewModel, context),
@@ -173,6 +193,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                         ],
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Already have an account?'.tr()),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pushReplacementNamed(context, '/login');
+                              },
+                              child: Text(
+                                'Login here'.tr(),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFc69400),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -198,8 +237,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       obscureText: obscure,
       decoration: InputDecoration(
         labelText: label,
+        border: const OutlineInputBorder(),
+        isDense: true,
       ),
       validator: validator,
+      onChanged: (value) {
+        // Clear error when user starts typing
+        if (Provider.of<AuthViewModel>(context, listen: false).errorMessage != null) {
+          Provider.of<AuthViewModel>(context, listen: false).clearError();
+        }
+      },
     );
   }
 

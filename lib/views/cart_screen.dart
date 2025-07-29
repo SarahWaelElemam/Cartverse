@@ -10,6 +10,15 @@ import 'package:fedis/models/cart_item_model.dart';
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
 
+  // Helper method to get translated name
+  String _getTranslatedName(CartItem item, BuildContext context) {
+    // If titleKey exists, use it for translation, otherwise fallback to name
+    if (item.titleKey != null && item.titleKey!.isNotEmpty) {
+      return item.titleKey!.tr();
+    }
+    return item.name;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,6 +96,18 @@ class CartScreen extends StatelessWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 16),
                   itemBuilder: (context, index) {
                     final item = cartViewModel.items[index];
+
+                    // Get the maximum stock available for this product
+                    final maxStock = item.titleKey != null
+                        ? cartViewModel.getAvailableStock(item.titleKey!)
+                        : 10; // fallback to 10 if no titleKey
+
+                    // Create quantity options based on available stock
+                    final quantityOptions = List.generate(
+                      maxStock.clamp(1, 10), // Limit to max 10 for UI purposes
+                          (i) => i + 1,
+                    );
+
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Card(
@@ -122,7 +143,7 @@ class CartScreen extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      item.name,
+                                      _getTranslatedName(item, context),
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
@@ -142,12 +163,25 @@ class CartScreen extends StatelessWidget {
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          'quantity'.tr(),
-                                          style: TextStyle(
-                                            color: isDark ? Colors.white70 : Colors.black87,
-                                            fontSize: 13,
-                                          ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'quantity'.tr(),
+                                              style: TextStyle(
+                                                color: isDark ? Colors.white70 : Colors.black87,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              '(${'stock'.tr()}: $maxStock)',
+                                              style: TextStyle(
+                                                color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                                fontSize: 11,
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                         const SizedBox(height: 4),
                                         Container(
@@ -157,11 +191,11 @@ class CartScreen extends StatelessWidget {
                                             borderRadius: BorderRadius.circular(4),
                                           ),
                                           child: DropdownButton<int>(
-                                            value: item.quantity,
+                                            value: item.quantity.clamp(1, maxStock),
                                             underline: const SizedBox(),
                                             padding: const EdgeInsets.symmetric(horizontal: 8),
                                             isExpanded: true,
-                                            items: List.generate(10, (i) => i + 1)
+                                            items: quantityOptions
                                                 .map((val) => DropdownMenuItem(
                                               value: val,
                                               child: Text(val.toString()),
@@ -279,25 +313,86 @@ class CartScreen extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                 ),
-                                onPressed: () {
-                                  // Add order to orders list
-                                  ordersViewModel.addOrder(
-                                    cartViewModel.items,
-                                    cartViewModel.totalPrice,
-                                  );
+                                onPressed: ordersViewModel.isLoading
+                                    ? null
+                                    : () async {
+                                  // Create copies of cart items with translated names for the order
+                                  final orderItems = cartViewModel.items
+                                      .map((item) => CartItem(
+                                    name: _getTranslatedName(item, context), // Use translated name
+                                    titleKey: item.titleKey,
+                                    price: item.price,
+                                    imageUrl: item.imageUrl,
+                                    quantity: item.quantity,
+                                  ))
+                                      .toList();
+                                  final orderTotal = cartViewModel.totalPrice;
 
-                                  // Clear the cart
-                                  cartViewModel.clearCart();
-
-                                  // Show success message
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('order_success'.tr()),
-                                      backgroundColor: const Color(0xFFb88e2f),
+                                  // Show loading dialog
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (context) => const Center(
+                                      child: CircularProgressIndicator(),
                                     ),
                                   );
+
+                                  try {
+                                    // Add order to orders list
+                                    final success = await ordersViewModel.addOrder(
+                                      orderItems,
+                                      orderTotal,
+                                    );
+
+                                    // Close loading dialog
+                                    Navigator.of(context).pop();
+
+                                    if (success) {
+                                      // Reduce stock for ordered items BEFORE clearing cart
+                                      cartViewModel.reduceStock(orderItems);
+
+                                      // Clear the cart only after successful order placement and stock reduction
+                                      cartViewModel.clearCart();
+
+                                      // Show success message
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('order_success'.tr()),
+                                          backgroundColor: const Color(0xFFb88e2f),
+                                        ),
+                                      );
+                                    } else {
+                                      // Show error message
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(ordersViewModel.errorMessage ?? 'Failed to place order'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    // Close loading dialog
+                                    Navigator.of(context).pop();
+
+                                    // Show error message
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Failed to place order: ${e.toString()}'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
                                 },
-                                child: Text(
+                                child: ordersViewModel.isLoading
+                                    ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                                    : Text(
                                   'place_order'.tr(),
                                   style: const TextStyle(
                                     color: Colors.white,

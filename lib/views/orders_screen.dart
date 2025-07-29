@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:fedis/viewmodels/orders_viewmodel.dart';
 import 'package:fedis/models/order_model.dart';
 import 'package:fedis/models/cart_item_model.dart';
+import 'package:fedis/utils/cache_helper.dart';
 import 'widgets/custom_drawer.dart';
 import 'widgets/custom_footer.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -16,6 +17,23 @@ class OrdersScreen extends StatefulWidget {
 
 class _OrdersScreenState extends State<OrdersScreen> {
   int selectedIndex = 1; // Start with orders selected
+
+  @override
+  void initState() {
+    super.initState();
+    // Load orders when screen is initialized
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadOrders();
+    });
+  }
+
+  void _loadOrders() {
+    final userId = CacheHelper.getInt('userId');
+    if (userId != null) {
+      final ordersViewModel = Provider.of<OrdersViewModel>(context, listen: false);
+      ordersViewModel.loadUserOrders(userId);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +51,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
           fontSize: 22,
         ),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadOrders,
+            tooltip: 'Refresh Orders',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -124,6 +149,50 @@ class OrdersContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<OrdersViewModel>(
       builder: (context, ordersViewModel, child) {
+        if (ordersViewModel.isLoading) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (ordersViewModel.errorMessage != null) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  'Error: ${ordersViewModel.errorMessage}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.red,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    final userId = CacheHelper.getInt('userId');
+                    if (userId != null) {
+                      ordersViewModel.loadUserOrders(userId);
+                    }
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+
         if (ordersViewModel.orders.isEmpty) {
           return Container(
             padding: const EdgeInsets.all(16),
@@ -283,8 +352,14 @@ class ProductDetailsDialog extends StatelessWidget {
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.7,
-          maxWidth: MediaQuery.of(context).size.width * 0.8,
+          maxHeight: MediaQuery
+              .of(context)
+              .size
+              .height * 0.7,
+          maxWidth: MediaQuery
+              .of(context)
+              .size
+              .width * 0.8,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -317,7 +392,18 @@ class ProductDetailsDialog extends StatelessWidget {
               ),
             ),
             Flexible(
-              child: ListView.separated(
+              child: order.items.isEmpty
+                  ? Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'No items found in this order',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              )
+                  : ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: order.items.length,
                 separatorBuilder: (context, index) => const Divider(),
@@ -356,7 +442,8 @@ class ProductDetailsDialog extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${'price'.tr()}: ${item.price.toStringAsFixed(2)} EGP',
+                              '${'price'.tr()}: ${item.price.toStringAsFixed(
+                                  2)} EGP',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFFB8860B),

@@ -6,7 +6,9 @@ class CustomFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Use context.locale to make the widget reactive to locale changes
     return Container(
+      key: ValueKey(context.locale), // Force rebuild on locale change
       color: const Color(0xFF1C1C1C),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
       child: Column(
